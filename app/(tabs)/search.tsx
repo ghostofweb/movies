@@ -1,4 +1,11 @@
-import { View, Text, Image, FlatList, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import React, { useState, useEffect } from "react";
 import { images } from "@/constants/images";
 import MovieCard from "@/components/MovieCard";
@@ -12,6 +19,7 @@ import { updateSearchCount } from "@/services/appwrite";
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState(""); // For API call debounce
+  const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
 
   const router = useRouter();
   const {
@@ -22,18 +30,18 @@ const Search = () => {
   } = useFetch(() => fetchMovies({ query: debouncedQuery }), false);
 
   // Debounce API call only
- useEffect(() => {
-  const handler = setTimeout(() => {
-    setDebouncedQuery(searchQuery);
-    
-    // Ensure movies array is valid before calling updateSearchCount
-    if (movies && movies.length > 0) {
-      updateSearchCount(searchQuery, movies[0]);
-    }
-  }, 500); // 500ms debounce delay for API calls
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
 
-  return () => clearTimeout(handler);
-}, [searchQuery, movies]); // Ensure movies is included as a dependency
+      // Ensure movies array is valid before calling updateSearchCount
+      if (movies && movies.length > 0) {
+        updateSearchCount(searchQuery, movies[0]);
+      }
+    }, 500); // 500ms debounce delay for API calls
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, movies]); // Ensure movies is included as a dependency
 
   // Fetch movies when debouncedQuery updates
   useEffect(() => {
@@ -42,8 +50,18 @@ const Search = () => {
     }
   }, [debouncedQuery]);
 
+  // Handle pull-to-refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
   return (
-    <View className="flex-1 bg-primary">
+    <ScrollView
+      className="flex-1 bg-primary"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       {/* Background Image */}
       <Image source={images.bg} className="absolute w-full h-64" resizeMode="cover" />
 
@@ -69,40 +87,32 @@ const Search = () => {
         )}
       </View>
 
-      {/* Show results only if there's a query */}
+      {/* Loader / Error Handling */}
+      {moviesLoading && (
+        <ActivityIndicator size="large" color="#0000ff" className="my-4 self-center" />
+      )}
+      {moviesError && (
+        <Text className="text-red-500 text-center px-5 my-3">
+          Error: {moviesError.message}
+        </Text>
+      )}
+
+      {/* Show movies only if there's a search query */}
       {searchQuery.trim() !== "" ? (
-        <FlatList
-          data={movies || []}
-          renderItem={({ item }) => <MovieCard {...item} />}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={3}
-          columnWrapperStyle={{
-            justifyContent: "center",
-            gap: 16,
-            marginVertical: 16,
-          }}
-          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 10 }}
-          ListHeaderComponent={
-            <>
-              {/* Loader / Error Handling */}
-              {moviesLoading && (
-                <ActivityIndicator size="large" color="#0000ff" className="my-4" />
-              )}
-              {moviesError && (
-                <Text className="text-red-500 text-center px-5 my-3">
-                  Error: {moviesError.message}
-                </Text>
-              )}
-            </>
-          }
-        />
+        <View className="flex-wrap flex-row justify-center gap-4 px-5">
+          {movies?.map((item:any) => (
+            <MovieCard key={item.id} {...item} />
+          ))}
+        </View>
       ) : (
-        // Show "No movies found." when searchQuery is empty
         <Text className="text-gray-400 text-center text-lg mt-10">
           No movies found.
         </Text>
       )}
-    </View>
+
+      {/* Padding to avoid cutting off last item */}
+      <View className="h-32" />
+    </ScrollView>
   );
 };
 
