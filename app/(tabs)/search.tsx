@@ -7,30 +7,45 @@ import { useFetch } from "@/services/useFetch";
 import { fetchMovies } from "@/services/api";
 import { icons } from "@/constants/icons";
 import SearchBar from "@/components/SearchBar";
+import { updateSearchCount } from "@/services/appwrite";
 
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState(""); // For API call debounce
+
   const router = useRouter();
   const {
     data: movies,
     loading: moviesLoading,
     error: moviesError,
     refetch,
-  } = useFetch(() => fetchMovies({ query: searchQuery }), false);
+  } = useFetch(() => fetchMovies({ query: debouncedQuery }), false);
 
-  // Refetch movies when searchQuery changes
+  // Debounce API call only
+ useEffect(() => {
+  const handler = setTimeout(() => {
+    setDebouncedQuery(searchQuery);
+    
+    // Ensure movies array is valid before calling updateSearchCount
+    if (movies && movies.length > 0) {
+      updateSearchCount(searchQuery, movies[0]);
+    }
+  }, 500); // 500ms debounce delay for API calls
+
+  return () => clearTimeout(handler);
+}, [searchQuery, movies]); // Ensure movies is included as a dependency
+
+  // Fetch movies when debouncedQuery updates
   useEffect(() => {
-    refetch();
-  }, [searchQuery]);
+    if (debouncedQuery.trim() !== "") {
+      refetch();
+    }
+  }, [debouncedQuery]);
 
   return (
     <View className="flex-1 bg-primary">
       {/* Background Image */}
-      <Image
-        source={images.bg}
-        className="absolute w-full h-full"
-        resizeMode="cover"
-      />
+      <Image source={images.bg} className="absolute w-full h-64" resizeMode="cover" />
 
       {/* Logo */}
       <View className="w-full flex-row justify-center mt-16">
@@ -46,44 +61,43 @@ const Search = () => {
         />
       </View>
 
-      {/* Static "Results for:" + Dynamic Search Query */}
-      <View className="flex-row items-center my-2 pl-5">
+      {/* Show "Results for: {query}" in real time */}
+      <View className="flex-row pl-5 my-2">
         <Text className="text-xl font-bold text-white">Results for: </Text>
         {searchQuery.trim() !== "" && (
-          <Text className="text-xl font-bold text-blue-500">{searchQuery}</Text>
+          <Text className="text-xl font-bold text-blue-500 ml-2">{searchQuery}</Text>
         )}
       </View>
 
-
-      {/* Movies List */}
-      <FlatList
-        data={movies || []} // ✅ Ensure movies is always an array
-        renderItem={({ item }) => <MovieCard {...item} />}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={3}
-        columnWrapperStyle={{
-          justifyContent: "center",
-          gap: 16,
-          marginVertical: 16,
-        }}
-        contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 10 }}
-        ListHeaderComponent={
-          <>
-            {/* Loader / Error Handling */}
-            {moviesLoading && (
-              <ActivityIndicator size="large" color="#0000ff" className="my-4" />
-            )}
-            {moviesError && (
-              <Text className="text-red-500 text-center px-5 my-3">
-                Error: {moviesError.message}
-              </Text>
-            )}
-          </>
-        }
-      />
-
-      {/* No Movies Found */}
-      {!moviesLoading && (movies || []).length === 0 && searchQuery.trim() !== "" && (
+      {/* Show results only if there's a query */}
+      {searchQuery.trim() !== "" ? (
+        <FlatList
+          data={movies || []}
+          renderItem={({ item }) => <MovieCard {...item} />}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={3}
+          columnWrapperStyle={{
+            justifyContent: "center",
+            gap: 16,
+            marginVertical: 16,
+          }}
+          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 10 }}
+          ListHeaderComponent={
+            <>
+              {/* Loader / Error Handling */}
+              {moviesLoading && (
+                <ActivityIndicator size="large" color="#0000ff" className="my-4" />
+              )}
+              {moviesError && (
+                <Text className="text-red-500 text-center px-5 my-3">
+                  Error: {moviesError.message}
+                </Text>
+              )}
+            </>
+          }
+        />
+      ) : (
+        // Show "No movies found." when searchQuery is empty
         <Text className="text-gray-400 text-center text-lg mt-10">
           No movies found.
         </Text>
