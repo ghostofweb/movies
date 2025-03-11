@@ -1,21 +1,20 @@
 {
   "expo": {
-    "name": "Movie List",
-    "slug": "Movie List",
-    "version": "1.0.0",
+    "name": "Movies",
+    "slug": "Movies",
+    "version": "1.0.1",
+    "runtimeVersion": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ghostofweb.Movies"
     },
     "web": {
       "bundler": "metro",
@@ -34,8 +33,22 @@
         }
       ]
     ],
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/61be3f05-3566-40e0-8e9e-d96f9e20449c"
+    },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "61be3f05-3566-40e0-8e9e-d96f9e20449c"
+      }
+    },
+    "ios": {}
   }
 }
