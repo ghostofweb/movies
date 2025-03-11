@@ -65,8 +65,6 @@ export default function Index() {
               className="w-12 h-10 mt-20 mb-5 mx-auto"
               resizeMode="contain"
             />
-            <SearchBar placeholder="Search for a movie" />
-
             {/* Trending Movies Section */}
             {trendingMovies && (
               <View className="mt-10 mb-5">

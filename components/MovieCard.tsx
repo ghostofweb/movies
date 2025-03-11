@@ -9,7 +9,8 @@ interface Movie {
   title: string;
   vote_average: number;
   release_date: string;
-  genres?: string[]; // Optional genres
+  genres?: string[]; 
+ 
 }
 
 const MovieCard = ({ id, poster_path, title, vote_average, release_date, genres }: Movie) => {
